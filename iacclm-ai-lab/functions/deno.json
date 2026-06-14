@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "lib": ["deno.ns", "deno.window", "esnext"],
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "imports": {
+    "npm:@insforge/sdk@latest": "npm:@insforge/sdk@latest"
+  }
+}

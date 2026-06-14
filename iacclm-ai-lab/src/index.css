@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #f8fafc;
+  color: #0f172a;
+  margin: 0;
+}
+
+/* ── Scrollbar ─────────────────────────────────────── */
+::-webkit-scrollbar          { width: 5px; height: 5px; }
+::-webkit-scrollbar-track    { background: #f1f5f9; }
+::-webkit-scrollbar-thumb    { background: #94a3b8; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+/* ── Prose styling for AI markdown output ───────────── */
+.prose-medical h1,
+.prose-medical h2,
+.prose-medical h3 {
+  @apply font-semibold text-gray-800 mt-4 mb-2;
+}
+.prose-medical p       { @apply text-gray-700 leading-relaxed mb-3; }
+.prose-medical ul      { @apply list-disc pl-5 mb-3 space-y-1; }
+.prose-medical ol      { @apply list-decimal pl-5 mb-3 space-y-1; }
+.prose-medical li      { @apply text-gray-700; }
+.prose-medical strong  { @apply font-semibold text-gray-900; }
+.prose-medical code    { @apply bg-gray-100 text-primary-700 px-1 rounded text-sm font-mono; }
+.prose-medical blockquote {
+  @apply border-l-4 border-primary-300 pl-4 italic text-gray-600 my-3;
+}
+.prose-medical table   { @apply w-full border-collapse text-sm mb-4; }
+.prose-medical th      { @apply bg-primary-50 text-primary-800 font-semibold px-3 py-2 border border-gray-200 text-left; }
+.prose-medical td      { @apply px-3 py-2 border border-gray-200; }
+.prose-medical tr:nth-child(even) { @apply bg-gray-50; }
