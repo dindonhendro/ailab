@@ -269,28 +269,30 @@ export default function Dashboard() {
 
       {/* Info banner */}
       <Card className="!p-4 bg-gradient-to-r from-primary-50 to-sky-50 border-primary-100">
-        <div className="flex items-start gap-3">
-          <Activity size={20} className="text-primary-600 shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-primary-800 mb-1">
-              Panduan Penggunaan Platform
-            </p>
-            <ul className="text-xs text-primary-700 space-y-1">
-              <li className="flex items-center gap-2">
-                <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
-                Gunakan <strong>AI Chat</strong> untuk pertanyaan umum seputar interpretasi laboratorium klinis
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
-                Gunakan <strong>Interpretasi Lab</strong> untuk memproses hasil pasien real dengan integrasi SATUSEHAT FHIR
-              </li>
-              <li className="flex items-center gap-2">
-                <AlertTriangle size={12} className="text-amber-500 shrink-0" />
-                Platform ini hanya memberikan interpretasi — tidak menggantikan diagnosis klinis dokter
-              </li>
-            </ul>
+        <div className="flex flex-col sm:flex-row items-start gap-4 justify-between">
+          <div className="flex items-start gap-3">
+            <Activity size={20} className="text-primary-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-primary-800 mb-1">
+                Panduan Penggunaan Platform
+              </p>
+              <ul className="text-xs text-primary-700 space-y-1">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
+                  Gunakan <strong>AI Chat</strong> untuk pertanyaan umum seputar interpretasi laboratorium klinis
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
+                  Gunakan <strong>Interpretasi Lab</strong> untuk memproses hasil pasien real dengan integrasi SATUSEHAT FHIR
+                </li>
+                <li className="flex items-center gap-2">
+                  <AlertTriangle size={12} className="text-amber-500 shrink-0" />
+                  Platform ini hanya memberikan interpretasi — tidak menggantikan diagnosis klinis dokter
+                </li>
+              </ul>
+            </div>
           </div>
-          <Button size="sm" onClick={() => navigate('/chat')} className="shrink-0">
+          <Button size="sm" onClick={() => navigate('/chat')} className="w-full sm:w-auto shrink-0 self-end sm:self-center">
             Mulai Chat
           </Button>
         </div>

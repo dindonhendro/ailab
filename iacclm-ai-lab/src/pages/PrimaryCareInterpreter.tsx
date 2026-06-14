@@ -398,7 +398,7 @@ export default function PrimaryCareInterpreter() {
       {/* ── Panel Selector Grid ── */}
       <div>
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Pilih Panel Pemeriksaan</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {PANELS.map((panel) => {
             const Icon = panel.icon
             const isActive = selectedPanel === panel.key

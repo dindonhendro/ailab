@@ -8,6 +8,7 @@ import {
   User,
   Dna,
   AlertCircle,
+  ChevronLeft,
 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -97,9 +98,9 @@ export default function Chat() {
   }
 
   return (
-    <div className="h-full flex gap-4">
+    <div className="h-full flex gap-4 overflow-hidden relative">
       {/* ── Conversation Sidebar ─────────────────────────── */}
-      <div className="w-60 flex flex-col gap-2 shrink-0">
+      <div className={`flex flex-col gap-2 shrink-0 w-full md:w-60 ${activeConversation ? 'hidden md:flex' : 'flex'}`}>
         <Button
           size="sm"
           onClick={() => { clearActiveConversation(); createConversation() }}
@@ -137,11 +138,18 @@ export default function Chat() {
       </div>
 
       {/* ── Chat Main Area ───────────────────────────────── */}
-      <Card padding="none" className="flex-1 flex flex-col overflow-hidden min-w-0">
+      <Card padding="none" className={`flex-1 flex flex-col overflow-hidden min-w-0 ${activeConversation ? 'flex' : 'hidden md:flex'}`}>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <Bot size={18} className="text-violet-600" />
+            <button
+              onClick={clearActiveConversation}
+              className="p-1 rounded-lg hover:bg-gray-100 transition-colors md:hidden text-gray-500 mr-1 shrink-0"
+              aria-label="Kembali ke percakapan"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <Bot size={18} className="text-violet-600 shrink-0" />
             <div>
               <p className="text-sm font-semibold text-gray-800">
                 {activeConversation?.title ?? 'AI Chat IACCLM'}

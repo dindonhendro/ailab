@@ -417,8 +417,8 @@ export default function QcDetector() {
           <Plus size={15} className="text-primary-600" />
           Tambah Data QC Harian
         </h2>
-        <div className="flex items-end gap-3">
-          <div className="flex-1 max-w-xs">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+          <div className="w-full sm:max-w-xs">
             <Input
               label={`Nilai ${config.label} (${config.unit})`}
               type="number"
@@ -428,7 +428,7 @@ export default function QcDetector() {
               onChange={(e) => setNewValue(e.target.value)}
             />
           </div>
-          <Button onClick={handleAddData} leftIcon={<Plus size={14} />}>
+          <Button onClick={handleAddData} leftIcon={<Plus size={14} />} className="w-full sm:w-auto shrink-0">
             Tambah Data
           </Button>
         </div>

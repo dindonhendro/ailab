@@ -210,7 +210,7 @@ export default function Interpreter() {
           return (
             <div key={key} className="flex items-center">
               {idx > 0 && (
-                <div className={`h-0.5 w-12 mx-1 ${done || current ? 'bg-primary-400' : 'bg-gray-200'}`} />
+                <div className={`h-0.5 w-8 sm:w-12 mx-1 ${done || current ? 'bg-primary-400' : 'bg-gray-200'}`} />
               )}
               <div
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
@@ -220,7 +220,7 @@ export default function Interpreter() {
                 }`}
               >
                 {done ? <CheckCircle2 size={13} /> : <Icon size={13} />}
-                {label}
+                <span className="hidden sm:inline">{label}</span>
               </div>
             </div>
           )
@@ -242,26 +242,27 @@ export default function Interpreter() {
             <User size={16} className="text-primary-600" />
             Pencarian Pasien via SATUSEHAT MPI
           </h2>
-          <div className="flex gap-3 max-w-md">
-            <Input
-              label="IHS Number"
-              placeholder="Contoh: P02029190009"
-              value={ihsInput}
-              onChange={(e) => setIhsInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handlePatientSearch()}
-              hint="Nomor identitas pasien dari SATUSEHAT Master Patient Index"
-              leftIcon={<Search size={14} />}
-            />
-            <div className="flex items-end">
-              <Button
-                onClick={handlePatientSearch}
-                loading={patientLoading}
-                size="md"
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-end max-w-md">
+            <div className="flex-1">
+              <Input
+                label="IHS Number"
+                placeholder="Contoh: P02029190009"
+                value={ihsInput}
+                onChange={(e) => setIhsInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handlePatientSearch()}
+                hint="Nomor identitas pasien dari SATUSEHAT Master Patient Index"
                 leftIcon={<Search size={14} />}
-              >
-                Cari
-              </Button>
+              />
             </div>
+            <Button
+              onClick={handlePatientSearch}
+              loading={patientLoading}
+              size="md"
+              leftIcon={<Search size={14} />}
+              className="w-full sm:w-auto"
+            >
+              Cari
+            </Button>
           </div>
           {patientError && (
             <div className="mt-3 flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
@@ -340,9 +341,8 @@ export default function Interpreter() {
               </div>
             )}
 
-            {/* Add individual parameter */}
-            <div className="flex gap-2 items-end mb-4">
-              <div className="flex-1">
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-end mb-4">
+              <div className="flex-1 min-w-0">
                 <label className="text-xs font-medium text-gray-600 mb-1 block">Parameter (LOINC)</label>
                 <select
                   value={newLoinc}
@@ -358,7 +358,7 @@ export default function Interpreter() {
                   ))}
                 </select>
               </div>
-              <div className="w-32">
+              <div className="w-full sm:w-32">
                 <Input
                   label="Nilai"
                   type="number"
@@ -368,7 +368,7 @@ export default function Interpreter() {
                   onKeyDown={(e) => e.key === 'Enter' && addResult()}
                 />
               </div>
-              <Button size="md" onClick={addResult} leftIcon={<Plus size={14} />} className="shrink-0">
+              <Button size="md" onClick={addResult} leftIcon={<Plus size={14} />} className="w-full sm:w-auto shrink-0">
                 Tambah
               </Button>
             </div>

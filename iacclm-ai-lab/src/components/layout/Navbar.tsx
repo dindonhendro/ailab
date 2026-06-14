@@ -1,16 +1,28 @@
-import { Bell, ChevronDown, LogOut, User } from 'lucide-react'
+import { Bell, ChevronDown, LogOut, User, Menu } from 'lucide-react'
 import { useState } from 'react'
 import { useAuthStore } from '../../stores/authStore'
 
-export default function Navbar() {
+interface NavbarProps {
+  onMenuClick: () => void
+}
+
+export default function Navbar({ onMenuClick }: NavbarProps) {
   const { user, signOut } = useAuthStore()
   const [open, setOpen] = useState(false)
 
   return (
-    <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-5 shrink-0 z-10">
-      {/* Left: breadcrumb / brand */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-primary-700 hidden sm:block">
+    <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-5 shrink-0 z-10">
+      {/* Left: Hamburger menu + breadcrumb / brand */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onMenuClick}
+          className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors md:hidden"
+          aria-label="Open sidebar"
+        >
+          <Menu size={20} className="text-gray-600" />
+        </button>
+
+        <span className="text-sm font-semibold text-primary-700">
           IACCLM AI Lab
         </span>
         <span className="text-gray-300 hidden sm:block">|</span>
