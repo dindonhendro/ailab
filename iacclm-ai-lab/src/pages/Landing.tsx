@@ -159,10 +159,6 @@ export default function Landing() {
                   Mulai Gunakan AI Lab
                   <ArrowRight size={16} />
                 </Button>
-                <Button variant="outline" size="lg" onClick={() => window.open('https://github.com/dindonhendro/ailab', '_blank')} className="flex items-center gap-2 border-gray-300">
-                  Lihat Kode Sumber
-                  <ExternalLink size={14} className="text-gray-400" />
-                </Button>
               </div>
               <div className="flex flex-wrap justify-center lg:justify-start gap-x-6 gap-y-3 text-xs text-gray-400 font-medium pt-4 border-t border-gray-100/80">
                 <span className="flex items-center gap-1.5"><CheckCircle2 size={13} className="text-emerald-500" /> SNI ISO 15189 (Aturan Westgard)</span>
