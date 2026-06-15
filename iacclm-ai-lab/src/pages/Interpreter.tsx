@@ -33,22 +33,22 @@ const statusVariant: Record<string, 'normal' | 'high' | 'low' | 'critical' | 'in
 
 export default function Interpreter() {
   // ── State ──────────────────────────────────────────────
-  const [step, setStep]               = useState<Step>('patient')
-  const [ihsInput, setIhsInput]       = useState('')
-  const [patient, setPatient]         = useState<PatientData | null>(null)
+  const [step, setStep] = useState<Step>('patient')
+  const [ihsInput, setIhsInput] = useState('')
+  const [patient, setPatient] = useState<PatientData | null>(null)
   const [patientLoading, setPatientLoading] = useState(false)
-  const [patientError, setPatientError]     = useState('')
+  const [patientError, setPatientError] = useState('')
 
-  const [results, setResults]           = useState<LabResult[]>([])
-  const [newLoinc, setNewLoinc]         = useState('')
-  const [newValue, setNewValue]         = useState('')
-  const [panelOpen, setPanelOpen]       = useState(false)
+  const [results, setResults] = useState<LabResult[]>([])
+  const [newLoinc, setNewLoinc] = useState('')
+  const [newValue, setNewValue] = useState('')
+  const [panelOpen, setPanelOpen] = useState(false)
 
   const [interpreting, setInterpreting] = useState(false)
-  const [response, setResponse]         = useState<InterpretResponse | null>(null)
-  const [interpError, setInterpError]   = useState('')
-  const [submitting, setSubmitting]     = useState(false)
-  const [submitted, setSubmitted]       = useState(false)
+  const [response, setResponse] = useState<InterpretResponse | null>(null)
+  const [interpError, setInterpError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
 
   // ── Step 1: patient lookup ──────────────────────────────
   const handlePatientSearch = async () => {
@@ -132,10 +132,10 @@ export default function Interpreter() {
 
     const session: LabSession = {
       patient_ihs_number: patient.ihs_number,
-      patient_name:       patient.name,
-      patient_gender:     patient.gender === 'female' ? 'female' : 'male',
-      patient_data:       patient,
-      lab_results:        results.filter((r) => r.value > 0),
+      patient_name: patient.name,
+      patient_gender: patient.gender === 'female' ? 'female' : 'male',
+      patient_data: patient,
+      lab_results: results.filter((r) => r.value > 0),
     }
 
     const { data, error } = await interpretLabResults(session)
@@ -154,10 +154,10 @@ export default function Interpreter() {
     setSubmitting(true)
     const session: LabSession = {
       patient_ihs_number: patient.ihs_number,
-      patient_name:       patient.name,
-      patient_gender:     patient.gender === 'female' ? 'female' : 'male',
-      patient_data:       patient,
-      lab_results:        results,
+      patient_name: patient.name,
+      patient_gender: patient.gender === 'female' ? 'female' : 'male',
+      patient_data: patient,
+      lab_results: results,
     }
     const sessionRes = await saveLabSession(session)
     if (!sessionRes.error && sessionRes.data) {
@@ -202,10 +202,10 @@ export default function Interpreter() {
       <div className="flex items-center gap-0">
         {[
           { key: 'patient', label: 'Data Pasien', icon: User },
-          { key: 'lab',     label: 'Input Hasil', icon: FlaskConical },
-          { key: 'result',  label: 'Interpretasi',icon: FileText },
+          { key: 'lab', label: 'Input Hasil', icon: FlaskConical },
+          { key: 'result', label: 'Interpretasi', icon: FileText },
         ].map(({ key, label, icon: Icon }, idx) => {
-          const done    = ['patient', 'lab', 'result'].indexOf(step) > idx
+          const done = ['patient', 'lab', 'result'].indexOf(step) > idx
           const current = step === key
           return (
             <div key={key} className="flex items-center">
@@ -213,11 +213,10 @@ export default function Interpreter() {
                 <div className={`h-0.5 w-8 sm:w-12 mx-1 ${done || current ? 'bg-primary-400' : 'bg-gray-200'}`} />
               )}
               <div
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  current ? 'bg-primary-700 text-white' :
-                  done    ? 'bg-emerald-100 text-emerald-700' :
-                            'bg-gray-100 text-gray-500'
-                }`}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${current ? 'bg-primary-700 text-white' :
+                    done ? 'bg-emerald-100 text-emerald-700' :
+                      'bg-gray-100 text-gray-500'
+                  }`}
               >
                 {done ? <CheckCircle2 size={13} /> : <Icon size={13} />}
                 <span className="hidden sm:inline">{label}</span>
@@ -285,7 +284,7 @@ export default function Interpreter() {
               onClick={() => setIhsInput('P02029190009')}
               className="mt-2 text-xs text-amber-700 underline hover:text-amber-900"
             >
-              Gunakan IHS demo: P02029190009
+              Gunakan IHS demo: P00020194883
             </button>
           </div>
         </Card>
