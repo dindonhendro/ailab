@@ -214,8 +214,8 @@ export default function Interpreter() {
               )}
               <div
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${current ? 'bg-primary-700 text-white' :
-                    done ? 'bg-emerald-100 text-emerald-700' :
-                      'bg-gray-100 text-gray-500'
+                  done ? 'bg-emerald-100 text-emerald-700' :
+                    'bg-gray-100 text-gray-500'
                   }`}
               >
                 {done ? <CheckCircle2 size={13} /> : <Icon size={13} />}
@@ -245,7 +245,7 @@ export default function Interpreter() {
             <div className="flex-1">
               <Input
                 label="IHS Number"
-                placeholder="Contoh: P02029190009"
+                placeholder="Contoh: P00020194883"
                 value={ihsInput}
                 onChange={(e) => setIhsInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handlePatientSearch()}
@@ -281,7 +281,7 @@ export default function Interpreter() {
               <code className="font-mono bg-amber-100 px-1 rounded">SATUSEHAT_CLIENT_ID</code> di InsForge Functions.
             </p>
             <button
-              onClick={() => setIhsInput('P02029190009')}
+              onClick={() => setIhsInput('P00020194883')}
               className="mt-2 text-xs text-amber-700 underline hover:text-amber-900"
             >
               Gunakan IHS demo: P00020194883
