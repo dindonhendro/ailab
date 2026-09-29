@@ -21,6 +21,7 @@ import { Card, Badge, Spinner } from '../components/ui/ui'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import type { PatientData, LabResult, LabSession, InterpretResponse } from '../types'
+import { useAuthStore } from '../stores/authStore'
 
 type Step = 'patient' | 'lab' | 'result'
 
@@ -32,6 +33,8 @@ const statusVariant: Record<string, 'normal' | 'high' | 'low' | 'critical' | 'in
 }
 
 export default function Interpreter() {
+  const user = useAuthStore((state) => state.user)
+
   // ── State ──────────────────────────────────────────────
   const [step, setStep] = useState<Step>('patient')
   const [ihsInput, setIhsInput] = useState('')
@@ -49,6 +52,11 @@ export default function Interpreter() {
   const [interpError, setInterpError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+
+  // State for Critical Value confirmation pop-up
+  const [criticalLoinc, setCriticalLoinc] = useState<string | null>(null)
+  const [criticalValue, setCriticalValue] = useState<number>(0)
+  const [criticalNote, setCriticalNote] = useState('')
 
   // ── Step 1: patient lookup ──────────────────────────────
   const handlePatientSearch = async () => {
@@ -74,6 +82,14 @@ export default function Interpreter() {
     const gender = patient?.gender === 'female' ? 'female' : 'male'
     const range = gender === 'female' ? entry.female : entry.male
     const status = getResultStatus(newLoinc, val, gender)
+
+    if (status === 'critical') {
+      setCriticalLoinc(newLoinc)
+      setCriticalValue(val)
+      setCriticalNote('')
+      return
+    }
+
     const lr: LabResult = {
       loinc_code: entry.code,
       parameter_name: entry.parameter,
@@ -114,14 +130,53 @@ export default function Interpreter() {
 
   const updateValue = (code: string, val: string) => {
     const num = parseFloat(val)
+    if (isNaN(num)) return
+    const gender = patient?.gender === 'female' ? 'female' : 'male'
+    const status = getResultStatus(code, num, gender)
+
+    if (status === 'critical') {
+      setCriticalLoinc(code)
+      setCriticalValue(num)
+      setCriticalNote('')
+      return
+    }
+
     setResults((prev) =>
       prev.map((r) => {
         if (r.loinc_code !== code) return r
-        const gender = patient?.gender === 'female' ? 'female' : 'male'
-        const status = isNaN(num) ? 'unknown' : getResultStatus(code, num, gender)
-        return { ...r, value: isNaN(num) ? 0 : num, status }
+        return { ...r, value: num, status }
       })
     )
+  }
+
+  const confirmCriticalValue = () => {
+    if (!criticalLoinc || !criticalNote.trim()) return
+    const entry = LOINC_MAP[criticalLoinc]
+    if (!entry) return
+    const gender = patient?.gender === 'female' ? 'female' : 'male'
+    const range = gender === 'female' ? entry.female : entry.male
+
+    const noteText = range.note 
+      ? `${range.note} | VERBAL CONFIRMATION: ${criticalNote.trim()}`
+      : `VERBAL CONFIRMATION: ${criticalNote.trim()}`
+
+    const lr: LabResult = {
+      loinc_code: entry.code,
+      parameter_name: entry.parameter,
+      value: criticalValue,
+      unit: entry.unit,
+      reference_range_low: range.low,
+      reference_range_high: range.high,
+      reference_range_note: noteText,
+      status: 'critical',
+    }
+
+    setResults((prev) => [...prev.filter((r) => r.loinc_code !== criticalLoinc), lr])
+    setCriticalLoinc(null)
+    setCriticalValue(0)
+    setCriticalNote('')
+    setNewLoinc('')
+    setNewValue('')
   }
 
   // ── Step 3: interpret ───────────────────────────────────
@@ -151,6 +206,12 @@ export default function Interpreter() {
   // ── Submit to SATUSEHAT ─────────────────────────────────
   const handleSubmit = async () => {
     if (!patient || !response) return
+
+    if (user?.role !== 'dokter') {
+      alert('Akses Ditolak: Hanya Dokter Sp.PK (Validator) yang diizinkan untuk memvalidasi dan mengirim laporan ke SATUSEHAT.')
+      return
+    }
+
     setSubmitting(true)
     const session: LabSession = {
       patient_ihs_number: patient.ihs_number,
@@ -550,13 +611,21 @@ export default function Interpreter() {
               </Button>
             </div>
             {!submitted ? (
-              <Button
-                onClick={handleSubmit}
-                loading={submitting}
-                leftIcon={<Send size={15} />}
-              >
-                Kirim ke SATUSEHAT
-              </Button>
+              <div className="flex flex-col items-end gap-1.5">
+                <Button
+                  onClick={handleSubmit}
+                  loading={submitting}
+                  disabled={user?.role !== 'dokter'}
+                  leftIcon={<Send size={15} />}
+                >
+                  Kirim ke SATUSEHAT
+                </Button>
+                {user?.role !== 'dokter' && (
+                  <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
+                    Hanya Dokter (Validator) yang dapat memvalidasi & mengirim ke SATUSEHAT
+                  </span>
+                )}
+              </div>
             ) : (
               <div className="flex items-center gap-2 text-sm text-emerald-700 font-medium">
                 <CheckCircle2 size={16} />
@@ -581,6 +650,62 @@ export default function Interpreter() {
         <div className="flex items-center justify-center py-10 gap-3">
           <Spinner />
           <p className="text-sm text-gray-500">Menghasilkan interpretasi AI berbasis FHIR…</p>
+        </div>
+      )}
+
+      {/* TAHAP 3: Critical Value Alerting Pop-up Overlay */}
+      {criticalLoinc && (
+        <div className="fixed inset-0 bg-black bg-opacity-65 flex items-center justify-center p-4 z-50">
+          <div className="bg-white border-2 border-red-500 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-red-600 border-b border-red-100 pb-3">
+              <AlertTriangle size={28} className="animate-pulse shrink-0" />
+              <div>
+                <h3 className="text-lg font-bold">ALARM: Nilai Kritis Terdeteksi!</h3>
+                <p className="text-[10px] text-red-500 font-medium uppercase tracking-wide">SOP Pelaporan Nilai Kritis Laboratorium</p>
+              </div>
+            </div>
+            
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-2 text-sm text-red-900">
+              <p><strong>Parameter:</strong> {LOINC_MAP[criticalLoinc]?.parameter} ({criticalLoinc})</p>
+              <p><strong>Nilai Hasil:</strong> <span className="text-base font-bold underline">{criticalValue} {LOINC_MAP[criticalLoinc]?.unit}</span></p>
+              <p className="text-xs text-red-600 leading-normal">
+                Nilai ini berada pada ambang kritis yang membahayakan nyawa pasien. Anda wajib segera melaporkan hasil ini kepada dokter penanggung jawab pasien secara verbal.
+              </p>
+            </div>
+            
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-gray-700 block">
+                Catatan Laporan/Konfirmasi Verbal (Wajib diisi)
+              </label>
+              <textarea
+                value={criticalNote}
+                onChange={(e) => setCriticalNote(e.target.value)}
+                placeholder="Contoh: Sudah dilaporkan ke dr. Setyawan pukul 19:42 WIB via telepon, instruksi: re-check dan persiapkan glukosa 40%."
+                rows={3}
+                className="w-full rounded-lg border border-gray-300 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+            
+            <div className="flex gap-2 justify-end pt-2">
+              <button
+                onClick={() => {
+                  setCriticalLoinc(null)
+                  setCriticalValue(0)
+                  setCriticalNote('')
+                }}
+                className="px-4 py-2 rounded-lg text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={confirmCriticalValue}
+                disabled={!criticalNote.trim()}
+                className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Konfirmasi & Simpan
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

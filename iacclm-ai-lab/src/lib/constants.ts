@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────
 //  LOINC Code Mapping — Parameter Laboratorium Umum
 //  Sesuai standar IACCLM & referensi populasi Indonesia
+//  Corrected LOINC codes (Regenstrief LOINC)
 // ─────────────────────────────────────────────────────────
 
 export interface LoincEntry {
@@ -12,70 +13,115 @@ export interface LoincEntry {
 }
 
 export const LOINC_MAP: Record<string, LoincEntry> = {
-  '15545-5': {
-    code: '15545-5', parameter: 'Glukosa Puasa', unit: 'mg/dL',
-    male:   { low: 70,  high: 99 },
-    female: { low: 70,  high: 99 },
+  // Fasting glucose [Mass/volume] in Serum or Plasma
+  '1558-6': {
+    code: '1558-6',
+    parameter: 'Glukosa Puasa',
+    unit: 'mg/dL',
+    male:   { low: 70, high: 99 },
+    female: { low: 70, high: 99 },
   },
-  '15546-3': {
-    code: '15546-3', parameter: 'Glukosa 2 Jam PP', unit: 'mg/dL',
+
+  // Glucose [Mass/volume] in Serum or Plasma --2 hours post meal
+  '1521-4': {
+    code: '1521-4',
+    parameter: 'Glukosa 2 Jam PP',
+    unit: 'mg/dL',
     male:   { high: 140, note: '<140' },
     female: { high: 140, note: '<140' },
   },
+
+  // Creatinine [Mass/volume] in Serum or Plasma
+  // (kept 2160-0 even with µmol/L unit – common practice)
   '2160-0': {
-    code: '2160-0', parameter: 'Kreatinin', unit: 'μmol/L',
+    code: '2160-0',
+    parameter: 'Kreatinin',
+    unit: 'μmol/L',
     male:   { low: 61,  high: 107 },
     female: { low: 44,  high: 80  },
   },
-  '3094-0': {
-    code: '3094-0', parameter: 'Ureum', unit: 'mmol/L',
+
+  // Urea [Moles/volume] in Serum or Plasma
+  // (corrected from 3094-0 which is BUN / urea nitrogen)
+  '22664-7': {
+    code: '22664-7',
+    parameter: 'Ureum',
+    unit: 'mmol/L',
     male:   { low: 2.22, high: 4.99 },
     female: { low: 2.22, high: 4.99 },
   },
+
+  // Urate [Mass/volume] in Serum or Plasma
   '3084-1': {
-    code: '3084-1', parameter: 'Asam Urat', unit: 'μmol/L',
+    code: '3084-1',
+    parameter: 'Asam Urat',
+    unit: 'μmol/L',
     male:   { low: 230, high: 527 },
     female: { low: 155, high: 428 },
   },
+
+  // Aspartate aminotransferase [Enzymatic activity/volume] in Serum or Plasma
   '1920-8': {
-    code: '1920-8', parameter: 'SGOT (AST)', unit: 'U/L',
+    code: '1920-8',
+    parameter: 'SGOT (AST)',
+    unit: 'U/L',
     male:   { low: 15, high: 37 },
     female: { low: 15, high: 31 },
   },
+
+  // Alanine aminotransferase [Enzymatic activity/volume] in Serum or Plasma
   '1742-6': {
-    code: '1742-6', parameter: 'SGPT (ALT)', unit: 'U/L',
+    code: '1742-6',
+    parameter: 'SGPT (ALT)',
+    unit: 'U/L',
     male:   { low: 10, high: 45 },
     female: { low: 10, high: 35 },
   },
+
+  // Cholesterol [Mass/volume] in Serum or Plasma
   '2093-3': {
-    code: '2093-3', parameter: 'Kolesterol Total', unit: 'mg/dL',
+    code: '2093-3',
+    parameter: 'Kolesterol Total',
+    unit: 'mg/dL',
     male:   { high: 200, note: '<200' },
     female: { high: 200, note: '<200' },
   },
+
+  // Triglyceride [Mass/volume] in Serum or Plasma
   '2571-8': {
-    code: '2571-8', parameter: 'Trigliserida', unit: 'mg/dL',
+    code: '2571-8',
+    parameter: 'Trigliserida',
+    unit: 'mg/dL',
     male:   { high: 150, note: '<150' },
     female: { high: 150, note: '<150' },
   },
+
+  // Cholesterol in HDL [Mass/volume] in Serum or Plasma
   '2085-9': {
-    code: '2085-9', parameter: 'HDL Kolesterol', unit: 'mg/dL',
+    code: '2085-9',
+    parameter: 'HDL Kolesterol',
+    unit: 'mg/dL',
     male:   { low: 40, note: '>40' },
     female: { low: 50, note: '>50' },
   },
+
+  // Cholesterol in LDL [Mass/volume] in Serum or Plasma by Direct assay
   '18262-6': {
-    code: '18262-6', parameter: 'LDL Kolesterol', unit: 'mg/dL',
+    code: '18262-6',
+    parameter: 'LDL Kolesterol',
+    unit: 'mg/dL',
     male:   { high: 100, note: '<100' },
     female: { high: 100, note: '<100' },
   },
 }
 
-// Pre-defined lab panels
+// Pre-defined lab panels (updated with corrected codes)
 export const LAB_PANELS = {
-  GULA_DARAH:    { name: 'Panel Gula Darah',      codes: ['15545-5', '15546-3'] },
-  FUNGSI_GINJAL: { name: 'Panel Fungsi Ginjal',   codes: ['2160-0', '3094-0', '3084-1'] },
+  GULA_DARAH:    { name: 'Panel Gula Darah',      codes: ['1558-6', '1521-4'] },
+  FUNGSI_GINJAL: { name: 'Panel Fungsi Ginjal',   codes: ['2160-0', '22664-7', '3084-1'] },
   FUNGSI_HATI:   { name: 'Panel Fungsi Hati',     codes: ['1920-8', '1742-6'] },
   PROFIL_LIPID:  { name: 'Profil Lipid Lengkap',  codes: ['2093-3', '2571-8', '2085-9', '18262-6'] },
-  METABOLIK:     { name: 'Panel Metabolik Dasar', codes: ['15545-5', '2160-0', '3094-0', '1920-8', '1742-6'] },
+  METABOLIK:     { name: 'Panel Metabolik Dasar', codes: ['1558-6', '2160-0', '22664-7', '1920-8', '1742-6'] },
 }
 
 // System prompt for AI — IACCLM × SATUSEHAT
@@ -108,7 +154,15 @@ export function getResultStatus(
   loincCode: string,
   value: number,
   gender: 'male' | 'female' = 'male'
-): 'normal' | 'high' | 'low' | 'unknown' {
+): 'normal' | 'high' | 'low' | 'critical' | 'unknown' {
+  // Check critical thresholds first
+  if (loincCode === '1558-6') { // Glukosa Puasa
+    if (value < 40 || value > 400) return 'critical'
+  }
+  if (loincCode === '2160-0') { // Kreatinin
+    if (value > 500) return 'critical'
+  }
+
   const entry = LOINC_MAP[loincCode]
   if (!entry) return 'unknown'
   const range = gender === 'female' ? entry.female : entry.male

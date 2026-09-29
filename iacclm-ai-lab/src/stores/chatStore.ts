@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { insforge } from '../lib/insforge'
+import { supabase } from '../lib/supabase'
 import type { Conversation, Message } from '../types'
 import { useAuthStore } from './authStore'
 import { SYSTEM_PROMPT } from '../lib/constants'
@@ -27,7 +27,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   error:               null,
 
   fetchConversations: async () => {
-    const { data, error } = await insforge.database
+    const { data, error } = await supabase
       .from('conversations')
       .select('*')
       .order('updated_at', { ascending: false })
@@ -35,7 +35,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   selectConversation: async (id) => {
-    const { data, error } = await insforge.database
+    const { data, error } = await supabase
       .from('messages')
       .select('*')
       .eq('conversation_id', id)
@@ -54,7 +54,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return null
     }
 
-    const { data, error } = await insforge.database
+    const { data, error } = await supabase
       .from('conversations')
       .insert([{ title, user_id: user.id }])
       .select()
@@ -70,7 +70,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   deleteConversation: async (id) => {
-    await insforge.database.from('conversations').delete().eq('id', id)
+    await supabase.from('conversations').delete().eq('id', id)
     set((s) => ({
       conversations: s.conversations.filter((c) => c.id !== id),
       activeConversation: s.activeConversation?.id === id ? null : s.activeConversation,
@@ -88,7 +88,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       // Persist user message
-      const { data: userMsg, error: userMsgErr } = await insforge.database
+      const { data: userMsg, error: userMsgErr } = await supabase
         .from('messages')
         .insert([{ conversation_id: conv.id, role: 'user', content }])
         .select()
@@ -107,8 +107,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       let reply = ''
       
       try {
-        // 1. Try to call InsForge Edge Function
-        const { data: fnData, error: fnError } = await insforge.functions.invoke('chat', {
+        // 1. Try to call Supabase Edge Function
+        const { data: fnData, error: fnError } = await supabase.functions.invoke('chat', {
           body: {
             messages: history,
             conversation_id: conv.id,
@@ -118,30 +118,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
         if (!fnError && fnData) {
           reply = (fnData as { reply: string }).reply ?? ''
         } else {
-          console.warn('Edge function returned error, trying frontend AI fallback:', fnError)
+          console.warn('Edge function returned error, trying static fallback:', fnError)
         }
       } catch (err) {
-        console.warn('Failed to invoke edge function, trying frontend AI fallback:', err)
+        console.warn('Failed to invoke edge function, trying static fallback:', err)
       }
 
-      // 2. Fallback: Call InsForge AI directly from the frontend if edge function failed
+      // 2. Fallback: use static fallback if edge function failed or returned empty
       if (!reply) {
-        try {
-          const systemContent = SYSTEM_PROMPT + (includeFhirContext ? '\n\nKONTEKS FHIR TAMBAHAN:\n- Observation.code menggunakan LOINC (system: "http://loinc.org")\n- Observation.valueQuantity mencatat nilai numerik dengan satuan UCUM\n- Observation.referenceRange mencatat rentang normal\n- DiagnosticReport.conclusion berisi ringkasan interpretasi klinis\n- Patient diidentifikasi via IHS Number dari SATUSEHAT MPI' : '')
-          const completion = await (insforge as any).ai.chat.completions.create({
-            model: 'google/gemini-2.0-flash',
-            messages: [
-              { role: 'system', content: systemContent },
-              ...history
-            ],
-            temperature: 0.3,
-            max_tokens: 2048,
-          })
-          reply = completion?.choices?.[0]?.message?.content ?? ''
-        } catch (aiErr) {
-          console.warn('Frontend AI fallback failed, using static fallback:', aiErr)
-          reply = getStaticChatFallback(content)
-        }
+        console.warn('Edge function failed or returned empty, using static fallback')
+        reply = getStaticChatFallback(content)
       }
 
       if (!reply) {
@@ -149,7 +135,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       // Persist assistant message
-      const { data: asstMsg, error: asstMsgErr } = await insforge.database
+      const { data: asstMsg, error: asstMsgErr } = await supabase
         .from('messages')
         .insert([{ conversation_id: conv.id, role: 'assistant', content: reply }])
         .select()
@@ -166,7 +152,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // Update conversation title on first exchange
       const all = get().messages
       if (all.length <= 2) {
-        await insforge.database
+        await supabase
           .from('conversations')
           .update({ title: content.slice(0, 60), updated_at: new Date().toISOString() })
           .eq('id', conv.id)
@@ -287,11 +273,11 @@ Pertanyaan Anda: *"${content}"*
 Saat ini koneksi AI langsung sedang mengalami kendala. Berikut adalah panduan singkat parameter klinis yang dapat saya bantu jelaskan:
 
 1. **Panel Gula Darah**:
-   - Glukosa Puasa (LOINC \`15545-5\`, rujukan: 70-99 mg/dL)
-   - Glukosa 2 Jam PP (LOINC \`15546-3\`, rujukan: <140 mg/dL)
+   - Glukosa Puasa (LOINC \`1558-6\`, rujukan: 70-99 mg/dL)
+   - Glukosa 2 Jam PP (LOINC \`1521-4\`, rujukan: <140 mg/dL)
 2. **Panel Fungsi Ginjal**:
    - Kreatinin (LOINC \`2160-0\`, rujukan: 61-107 μmol/L Laki-laki / 44-80 μmol/L Perempuan)
-   - Ureum (LOINC \`3094-0\`, rujukan: 2.22-4.99 mmol/L)
+   - Ureum (LOINC \`22664-7\`, rujukan: 2.22-4.99 mmol/L)
    - Asam Urat (LOINC \`3084-1\`)
 3. **Panel Fungsi Hati**:
    - SGPT (LOINC \`1742-6\`, rujukan: 10-45 U/L Laki-laki)

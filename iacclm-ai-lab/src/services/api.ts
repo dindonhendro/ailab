@@ -1,4 +1,4 @@
-import { insforge } from '../lib/insforge'
+import { supabase } from '../lib/supabase'
 import type { LabSession, InterpretResponse, PatientData } from '../types'
 
 // ─── Patient lookup via SATUSEHAT MPI ────────────────────────
@@ -97,7 +97,7 @@ export async function getPatientByIhs(
 
   // 2. Query database `lab_sessions` table to see if this patient was previously saved
   try {
-    const { data: dbData, error: dbError } = await insforge.database
+    const { data: dbData, error: dbError } = await supabase
       .from('lab_sessions')
       .select('patient_name, patient_gender, patient_data')
       .eq('patient_ihs_number', trimmed)
@@ -118,7 +118,7 @@ export async function getPatientByIhs(
   }
 
   // 3. Fallback: call edge function
-  const { data, error } = await insforge.functions.invoke('fhir-patient', {
+  const { data, error } = await supabase.functions.invoke('fhir-patient', {
     body: { ihs_number: ihsNumber },
   })
   if (error) return { error: error.message }
@@ -132,7 +132,7 @@ export async function interpretLabResults(
 ): Promise<{ data?: InterpretResponse; error?: string }> {
   try {
     // 1. Try invoking the deployed edge function
-    const { data, error } = await insforge.functions.invoke('interpret', {
+    const { data, error } = await supabase.functions.invoke('interpret', {
       body: { ...session, submit_to_satusehat: submitToSatusehat },
     })
     if (!error && data) {
@@ -165,79 +165,9 @@ const uuidv4 = () => {
 async function generateFrontendInterpretation(
   session: LabSession
 ): Promise<InterpretResponse> {
-  const patientName = session.patient_name ?? 'Pasien'
-  const gender = session.patient_gender ?? 'male'
-
-  const labSummary = session.lab_results
-    .map((r) => {
-      const ref = r.reference_range_note ?? (
-        r.reference_range_low !== undefined && r.reference_range_high !== undefined
-          ? `${r.reference_range_low}–${r.reference_range_high} ${r.unit}`
-          : 'tidak tersedia'
-      )
-      return `- ${r.parameter_name} (LOINC ${r.loinc_code}): ${r.value} ${r.unit} [Rujukan: ${ref}] — Status: ${r.status ?? 'unknown'}`
-    })
-    .join('\n')
-
-  const systemPrompt = `Anda adalah konsultan patologi klinik IACCLM. Berikan interpretasi laboratorium 
-yang akurat, berbasis bukti, menggunakan bahasa Indonesia medis formal. 
-Rujuk nilai normal populasi Indonesia. Jangan memberikan diagnosis final.`
-
-  const userPrompt = `Berikan interpretasi klinis laboratorium LENGKAP untuk pasien berikut:
-
-Nama Pasien: ${patientName}
-Jenis Kelamin: ${gender === 'female' ? 'Perempuan' : 'Laki-laki'}
-
-HASIL LABORATORIUM:
-${labSummary}
-
-Mohon berikan:
-1. Interpretasi setiap parameter (sebutkan kode LOINC)
-2. Korelasi antar parameter jika ada
-3. Pola klinis yang teridentifikasi
-4. Rekomendasi tindak lanjut (TANPA diagnosis final)
-5. Sumber referensi yang digunakan
-
-Format jawaban menggunakan Bahasa Indonesia medis yang formal.`
-
-  let interpretation = ''
-  let conclusion = ''
-
-  try {
-    // Attempt to call InsForge AI directly from the frontend
-    const comp1 = await (insforge as any).ai.chat.completions.create({
-      model: 'google/gemini-2.0-flash',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      temperature: 0.2,
-      max_tokens: 2000,
-    })
-    interpretation = comp1?.choices?.[0]?.message?.content ?? ''
-
-    if (interpretation) {
-      const comp2 = await (insforge as any).ai.chat.completions.create({
-        model: 'google/gemini-2.0-flash',
-        messages: [
-          { role: 'system', content: 'Anda adalah asisten ringkasan medis.' },
-          { role: 'user', content: `Buat ringkasan kesimpulan klinis dalam 2-3 kalimat dari interpretasi berikut. Bahasa Indonesia formal.\n\n${interpretation}` }
-        ],
-        temperature: 0.2,
-        max_tokens: 300,
-      })
-      conclusion = comp2?.choices?.[0]?.message?.content ?? ''
-    }
-  } catch (err) {
-    console.warn('Failed to call InsForge AI directly from frontend, using template fallback.', err)
-  }
-
-  // If AI call failed or returned empty, use static template-based fallback
-  if (!interpretation) {
-    const fallback = getStaticFallbackInterpretation(session)
-    interpretation = fallback.interpretation
-    conclusion = fallback.conclusion
-  }
+  const fallback = getStaticFallbackInterpretation(session)
+  const interpretation = fallback.interpretation
+  const conclusion = fallback.conclusion
 
   // Build simulated FHIR Observations
   const observations: any[] = session.lab_results.map((r) => ({
@@ -323,8 +253,8 @@ Jenis Kelamin: Laki-laki
 Skenario: Diabetes Melitus Tipe 2 (Hiperglikemia Berat)
 
 1. Interpretasi Parameter:
-- Glukosa Puasa (LOINC 15545-5): 185 mg/dL. Nilai ini menunjukkan peningkatan yang signifikan di atas rentang rujukan (70-99 mg/dL).
-- Glukosa 2 Jam PP (LOINC 15546-3): 270 mg/dL. Nilai ini sangat tinggi dan jauh melebihi batas rujukan normal (<140 mg/dL).
+- Glukosa Puasa (LOINC 1558-6): 185 mg/dL. Nilai ini menunjukkan peningkatan yang signifikan di atas rentang rujukan (70-99 mg/dL).
+- Glukosa 2 Jam PP (LOINC 1521-4): 270 mg/dL. Nilai ini sangat tinggi dan jauh melebihi batas rujukan normal (<140 mg/dL).
 
 2. Korelasi Parameter:
 Terdapat korelasi kuat antara peningkatan Glukosa Puasa dan Glukosa 2 Jam PP, yang menunjukkan kegagalan regulasi glukosa darah tubuh secara menyeluruh.
@@ -352,7 +282,7 @@ Skenario: Gagal Ginjal Kronis (CKD)
 
 1. Interpretasi Parameter:
 - Kreatinin Serum (LOINC 2160-0): 245 μmol/L. Nilai ini sangat tinggi melebihi batas rujukan normal perempuan (44-80 μmol/L).
-- Ureum Serum (LOINC 3094-0): 18.5 mmol/L. Terjadi peningkatan yang signifikan di atas nilai rujukan normal (2.22-4.99 mmol/L).
+- Ureum Serum (LOINC 22664-7): 18.5 mmol/L. Terjadi peningkatan yang signifikan di atas nilai rujukan normal (2.22-4.99 mmol/L).
 - Asam Urat (LOINC 3084-1): 510 μmol/L. Nilai ini meningkat melebihi nilai rujukan perempuan (155-428 μmol/L).
 
 2. Korelasi Parameter:
@@ -496,8 +426,8 @@ Pedoman IACCLM (Indonesian Association for Clinical Chemistry and Laboratory Med
 // ─── Dashboard stats from database ───────────────────────────
 export async function getDashboardStats() {
   const [convRes, sessionRes] = await Promise.all([
-    insforge.database.from('conversations').select('id', { count: 'exact', head: true }),
-    insforge.database.from('lab_sessions').select('id', { count: 'exact', head: true }),
+    supabase.from('conversations').select('id', { count: 'exact', head: true }),
+    supabase.from('lab_sessions').select('id', { count: 'exact', head: true }),
   ])
   return {
     totalConversations: convRes.count ?? 0,
@@ -507,7 +437,7 @@ export async function getDashboardStats() {
 
 // ─── Persist lab session to database ─────────────────────────
 export async function saveLabSession(session: LabSession) {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('lab_sessions')
     .insert([{
       patient_ihs_number: session.patient_ihs_number,
@@ -527,7 +457,7 @@ export async function saveDiagnosticReport(
   conclusion: string,
   satusehatId?: string
 ) {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('diagnostic_reports')
     .insert([{
       session_id:           sessionId,
@@ -560,8 +490,8 @@ export async function seedDummyData(userId: string): Promise<{ success: boolean;
       address: 'Jakarta Pusat, DKI Jakarta',
       phone: '+628121111111',
       results: [
-        { loinc: '15545-5', name: 'Glukosa Puasa', val: 185, unit: 'mg/dL', low: 70, high: 99, status: 'high' },
-        { loinc: '15546-3', name: 'Glukosa 2 Jam PP', val: 270, unit: 'mg/dL', high: 140, status: 'high' }
+        { loinc: '1558-6', name: 'Glukosa Puasa', val: 185, unit: 'mg/dL', low: 70, high: 99, status: 'high' },
+        { loinc: '1521-4', name: 'Glukosa 2 Jam PP', val: 270, unit: 'mg/dL', high: 140, status: 'high' }
       ],
       conclusion: 'Pasien menunjukkan kondisi hiperglikemia berat dengan glukosa puasa 185 mg/dL dan glukosa 2 jam PP 270 mg/dL. Pola ini mengarah pada kondisi diabetes melitus tidak terkontrol. Direkomendasikan pemeriksaan HbA1c dan konsultasi klinis segera.',
       interpretation: 'Hasil menunjukkan peningkatan Glukosa Puasa (185 mg/dL) dan Glukosa 2 Jam PP (270 mg/dL). Hal ini secara konsisten mengindikasikan adanya penyakit Diabetes Melitus yang belum terkontrol.'
@@ -575,7 +505,7 @@ export async function seedDummyData(userId: string): Promise<{ success: boolean;
       phone: '+628122222222',
       results: [
         { loinc: '2160-0', name: 'Kreatinin', val: 245, unit: 'μmol/L', low: 44, high: 80, status: 'high' },
-        { loinc: '3094-0', name: 'Ureum', val: 18.5, unit: 'mmol/L', low: 2.22, high: 4.99, status: 'high' },
+        { loinc: '22664-7', name: 'Ureum', val: 18.5, unit: 'mmol/L', low: 2.22, high: 4.99, status: 'high' },
         { loinc: '3084-1', name: 'Asam Urat', val: 510, unit: 'μmol/L', low: 155, high: 428, status: 'high' }
       ],
       conclusion: 'Ditemukan azotemia berat dengan Kreatinin 245 μmol/L and Ureum 18.5 mmol/L, disertai hiperurisemia. Kondisi ini mengindikasikan penurunan fungsi filtrasi ginjal yang signifikan (Chronic Kidney Disease). Diperlukan konsultasi nefrologi.',
@@ -633,8 +563,8 @@ export async function seedDummyData(userId: string): Promise<{ success: boolean;
       address: 'Yogyakarta, DIY',
       phone: '+628126666666',
       results: [
-        { loinc: '15545-5', name: 'Glukosa Puasa', val: 105, unit: 'mg/dL', low: 70, high: 99, status: 'high' },
-        { loinc: '15546-3', name: 'Glukosa 2 Jam PP', val: 165, unit: 'mg/dL', high: 140, status: 'high' }
+        { loinc: '1558-6', name: 'Glukosa Puasa', val: 105, unit: 'mg/dL', low: 70, high: 99, status: 'high' },
+        { loinc: '1521-4', name: 'Glukosa 2 Jam PP', val: 165, unit: 'mg/dL', high: 140, status: 'high' }
       ],
       conclusion: 'Pasien menunjukkan hasil glukosa darah borderline tinggi (Puasa 105 mg/dL, 2 Jam PP 165 mg/dL). Profil ini dapat menandakan intoleransi glukosa atau kecenderungan diabetes melitus gestasional (jika hamil).',
       interpretation: 'Kadar glukosa puasa 105 mg/dL dan gula 2 jam PP 165 mg/dL menunjukkan adanya intoleransi glukosa darah (prediabetes).'
@@ -648,7 +578,7 @@ export async function seedDummyData(userId: string): Promise<{ success: boolean;
       phone: '+628127777777',
       results: [
         { loinc: '2160-0', name: 'Kreatinin', val: 120, unit: 'μmol/L', low: 61, high: 107, status: 'high' },
-        { loinc: '3094-0', name: 'Ureum', val: 6.2, unit: 'mmol/L', low: 2.22, high: 4.99, status: 'high' }
+        { loinc: '22664-7', name: 'Ureum', val: 6.2, unit: 'mmol/L', low: 2.22, high: 4.99, status: 'high' }
       ],
       conclusion: 'Peningkatan kreatinin ringan (120 μmol/L) pada pasien geriatri. Disarankan pemantauan fungsi ginjal berkala dan penyesuaian dosis obat-obatan nefrotoksik.',
       interpretation: 'Sedikit peningkatan pada Kreatinin (120 μmol/L) dan Ureum (6.2 mmol/L), umum ditemukan pada pasien usia lanjut namun tetap memerlukan pengawasan.'
@@ -676,9 +606,9 @@ export async function seedDummyData(userId: string): Promise<{ success: boolean;
       address: 'Denpasar, Bali',
       phone: '+628129999999',
       results: [
-        { loinc: '15545-5', name: 'Glukosa Puasa', val: 82, unit: 'mg/dL', low: 70, high: 99, status: 'normal' },
+        { loinc: '1558-6', name: 'Glukosa Puasa', val: 82, unit: 'mg/dL', low: 70, high: 99, status: 'normal' },
         { loinc: '2160-0', name: 'Kreatinin', val: 62, unit: 'μmol/L', low: 44, high: 80, status: 'normal' },
-        { loinc: '3094-0', name: 'Ureum', val: 3.2, unit: 'mmol/L', low: 2.22, high: 4.99, status: 'normal' }
+        { loinc: '22664-7', name: 'Ureum', val: 3.2, unit: 'mmol/L', low: 2.22, high: 4.99, status: 'normal' }
       ],
       conclusion: 'Seluruh hasil laboratorium yang diperiksa berada dalam batas rujukan normal. Tidak diperlukan tindakan medis darurat.',
       interpretation: 'Semua nilai parameter metabolik utama (Glukosa, Kreatinin, Ureum) berada dalam batas normal rujukan.'
@@ -715,7 +645,7 @@ export async function seedDummyData(userId: string): Promise<{ success: boolean;
         phone: sc.phone
       }
 
-      const { data: sessData, error: sessErr } = await insforge.database
+      const { data: sessData, error: sessErr } = await supabase
         .from('lab_sessions')
         .insert([{
           user_id: userId,
@@ -748,7 +678,7 @@ export async function seedDummyData(userId: string): Promise<{ success: boolean;
         status: r.status
       }))
 
-      const { error: resErr } = await insforge.database
+      const { error: resErr } = await supabase
         .from('lab_results')
         .insert(resultsToInsert)
 
@@ -758,7 +688,7 @@ export async function seedDummyData(userId: string): Promise<{ success: boolean;
       }
 
       // Create diagnostic report
-      const { error: repErr } = await insforge.database
+      const { error: repErr } = await supabase
         .from('diagnostic_reports')
         .insert([{
           session_id: sessionId,

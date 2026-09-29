@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { insforge } from '../lib/insforge'
+import { supabase } from '../lib/supabase'
 import type { UserProfile } from '../types'
 
 interface AuthState {
@@ -20,48 +20,60 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signIn: async (email, password) => {
     set({ error: null })
-    const { data, error } = await insforge.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       set({ error: error.message })
       return { error: error.message }
     }
     if (data?.user) {
-      set({ user: { id: data.user.id, email: data.user.email, full_name: (data.user as unknown as { name?: string }).name } as UserProfile })
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single()
+      set({ user: { id: data.user.id, email: data.user.email ?? '', full_name: data.user.user_metadata?.full_name ?? data.user.email, role: profile?.role ?? 'dokter' } as UserProfile })
     }
     return {}
   },
 
   signUp: async (email, password, fullName) => {
     set({ error: null })
-    // InsForge signUp accepts: { email, password, name?, redirectTo?, autoConfirm? }
-    const { data, error } = await insforge.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      name: fullName,
+      options: {
+        data: {
+          full_name: fullName,
+        }
+      }
     })
     if (error) {
       set({ error: error.message })
       return { error: error.message }
     }
     if (data?.user) {
-      set({ user: { id: data.user.id, email: data.user.email, full_name: fullName } as UserProfile })
+      set({ user: { id: data.user.id, email: data.user.email ?? '', full_name: fullName, role: 'dokter' } as UserProfile })
     }
     return {}
   },
 
   signOut: async () => {
-    await insforge.auth.signOut()
+    await supabase.auth.signOut()
     set({ user: null })
   },
 
-  // InsForge has no onAuthStateChange; poll once on initialize
   initialize: async () => {
     try {
-      const { data, error } = await insforge.auth.getCurrentUser()
+      const { data, error } = await supabase.auth.getUser()
       if (!error && data?.user) {
-        const u = data.user as unknown as { id: string; email: string; name?: string }
+        const u = data.user
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('role')
+          .eq('id', u.id)
+          .single()
         set({
-          user: { id: u.id, email: u.email, full_name: u.name } as UserProfile,
+          user: { id: u.id, email: u.email ?? '', full_name: u.user_metadata?.full_name ?? u.email, role: profile?.role ?? 'dokter' } as UserProfile,
           loading: false,
         })
       } else {
@@ -74,3 +86,4 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   clearError: () => set({ error: null }),
 }))
+
